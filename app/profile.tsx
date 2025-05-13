@@ -1,15 +1,15 @@
-import { getUserDetails, User } from '@/services/auth';
+import { getUserDetails, logout, User } from '@/services/auth'; // Import logout
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -34,6 +34,15 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();  // Call logout function
+      router.replace('/(auth)/login');  // Navigate to login page
+    } catch (error) {
+      Alert.alert('Error', 'Logout failed. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -46,10 +55,10 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
       </View>
@@ -59,7 +68,7 @@ export default function ProfileScreen() {
           {user?.profile_url ? (
             <Image source={{ uri: user.profile_url }} style={styles.profileImage} />
           ) : (
-            <Ionicons name="person-circle" size={80} color="#4CAF50" />
+            <Ionicons name="person-circle" size={100} color="#4CAF50" />
           )}
         </View>
         <Text style={styles.name}>{user?.name || 'Guest User'}</Text>
@@ -68,25 +77,42 @@ export default function ProfileScreen() {
         {user?.occupation && <Text style={styles.occupation}>{user.occupation}</Text>}
       </View>
 
-      <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="person-outline" size={24} color="#333" />
-          <Text style={styles.menuText}>Edit Profile</Text>
-          <Ionicons name="chevron-forward" size={24} color="#666" />
-        </TouchableOpacity>
+     <View style={styles.menuContainer}>
+  {user ? (
+    <>
+      <TouchableOpacity style={styles.menuItem}>
+        <Ionicons name="person-outline" size={24} color="#333" />
+        <Text style={styles.menuText}>Edit Profile</Text>
+        <Ionicons name="chevron-forward" size={24} color="#666" />
+      </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="settings-outline" size={24} color="#333" />
-          <Text style={styles.menuText}>Settings</Text>
-          <Ionicons name="chevron-forward" size={24} color="#666" />
-        </TouchableOpacity>
+      <TouchableOpacity style={styles.menuItem}>
+        <Ionicons name="settings-outline" size={24} color="#333" />
+        <Text style={styles.menuText}>Settings</Text>
+        <Ionicons name="chevron-forward" size={24} color="#666" />
+      </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="help-circle-outline" size={24} color="#333" />
-          <Text style={styles.menuText}>Help & Support</Text>
-          <Ionicons name="chevron-forward" size={24} color="#666" />
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.menuItem}>
+        <Ionicons name="help-circle-outline" size={24} color="#333" />
+        <Text style={styles.menuText}>Help & Support</Text>
+        <Ionicons name="chevron-forward" size={24} color="#666" />
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Ionicons name="log-out-outline" size={24} color="#fff" />
+        <Text style={styles.logoutButtonText}>Log Out</Text>
+      </TouchableOpacity>
+    </>
+  ) : (
+    <TouchableOpacity
+      style={styles.logoutButton}
+      onPress={() => router.replace('/(auth)/login')}>
+      <Ionicons name="log-in-outline" size={24} color="#fff" />
+      <Text style={styles.logoutButtonText}>Log In</Text>
+    </TouchableOpacity>
+  )}
+</View>
+
     </SafeAreaView>
   );
 }
@@ -94,50 +120,46 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F8F8',
   },
   header: {
+    backgroundColor: '#4CAF50',
+    paddingTop: 15,
+    paddingBottom: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingHorizontal: 16,
+    elevation: 5,
   },
   backButton: {
-    padding: 8,
+    marginRight: 16,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 16,
-  },
-  loadingContainer: {
+    color: '#fff',
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
   },
   content: {
+    paddingHorizontal: 24,
+    paddingVertical: 40,
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginBottom: 20,
   },
   profileImageContainer: {
-    marginBottom: 16,
+    backgroundColor: '#fff',
+    borderRadius: 100,
+    padding: 10,
+    marginBottom: 20,
+    elevation: 5,
   },
   profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
   name: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
@@ -149,27 +171,59 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 14,
-    color: '#666',
+    color: '#4CAF50',
     marginBottom: 4,
   },
   occupation: {
     fontSize: 14,
     color: '#666',
+    marginBottom: 24,
   },
   menuContainer: {
-    padding: 16,
+    backgroundColor: '#fff',
+    marginHorizontal: 24,
+    borderRadius: 8,
+    paddingBottom: 20,
+    elevation: 5,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    justifyContent: 'space-between',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#ddd',
   },
   menuText: {
-    flex: 1,
     fontSize: 16,
-    marginLeft: 16,
     color: '#333',
   },
-}); 
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF5722',
+    paddingVertical: 14,
+    marginTop: 20,
+    marginBottom: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    marginHorizontal: 24,
+    elevation: 5,
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    marginLeft: 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#4CAF50',
+    marginTop: 8,
+  },
+});

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -9,10 +10,21 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: '#666',
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: '#eee',
-          paddingTop: 5,
-          paddingBottom: 5,
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
+          height: Platform.OS === 'ios' ? 88 : 60,
+          paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
         },
       }}>
       <Tabs.Screen
@@ -30,6 +42,15 @@ export default function TabLayout() {
           title: 'Explore',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="search-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="post"
+        options={{
+          title: 'Post',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="add-circle-outline" size={size} color={color} />
           ),
         }}
       />

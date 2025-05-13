@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -102,42 +102,31 @@ export default function ExploreScreen() {
     </TouchableOpacity>
   );
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
+  return (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.searchContainer}>
+        <Ionicons name="search-outline" size={20} color="#666" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search properties..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
+      {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.loadingText}>Loading properties...</Text>
         </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (error) {
-    return (
-      <SafeAreaView style={styles.container}>
+      ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadRentals}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search properties..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
+      ) : (
         <FlatList
           data={filteredRentals}
           renderItem={renderPropertyCard}
@@ -147,7 +136,7 @@ export default function ExploreScreen() {
           onRefresh={loadRentals}
           refreshing={loading}
         />
-      </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -157,15 +146,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  content: {
-    flex: 1,
-  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingTop: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(10px)',
+    borderBottomWidth: 0,
   },
   searchIcon: {
     marginRight: 8,
@@ -174,6 +162,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     fontSize: 16,
+    color: '#333',
   },
   list: {
     padding: 16,
@@ -201,6 +190,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
+    color: '#333',
   },
   location: {
     fontSize: 14,

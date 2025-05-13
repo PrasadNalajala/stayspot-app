@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface NavbarProps {
   onProfilePress?: () => void;
@@ -9,6 +9,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onProfilePress }) => {
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <Text style={styles.logo}>Stayspot</Text>
       <TouchableOpacity onPress={onProfilePress} style={styles.profileButton}>
         <Ionicons name="person-circle-outline" size={28} color="#333" />
@@ -24,7 +25,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 40,
-    paddingVertical: 15,
+    paddingBottom: 15,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
