@@ -88,6 +88,25 @@ export default function PostScreen() {
   
       await createRental(rentalData);
       Alert.alert('Success', 'Rental posted successfully!');
+      setFormData({
+        title: '',
+        location: '',
+        price: '',
+        bedrooms: '',
+        bathrooms: '',
+        size: '',
+        description: '',
+        availableFrom: '',
+        amenities: {},
+        contact: {
+          name: '',
+          phone: '',
+          email: '',
+        },
+        imageUrl: '',
+      });
+      setImageUrl(null); 
+      setImage(null);
       router.replace('/(tabs)/explore');
     } catch (error) {
       console.error('Error posting rental:', error);

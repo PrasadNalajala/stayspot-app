@@ -1,4 +1,5 @@
-import { getUserDetails, logout, User } from '@/services/auth'; // Import logout
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserDetails, logout, User } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -15,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { setAuthenticated } = useAuth(); 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,13 +37,13 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();  // Call logout function
-      router.replace('/(auth)/login');  // Navigate to login page
-    } catch (error) {
-      Alert.alert('Error', 'Logout failed. Please try again.');
-    }
-  };
+  try {
+    await logout();  
+    setAuthenticated(false);  
+  } catch (error) {
+    Alert.alert('Error', 'Logout failed. Please try again.');
+  }
+};
 
   if (loading) {
     return (
