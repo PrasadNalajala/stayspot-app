@@ -39,6 +39,7 @@ export default function PostScreen() {
       phone: '',
       email: '',
     },
+    imageUrl:''
   });
 
   const pickImage = async () => {

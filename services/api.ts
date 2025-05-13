@@ -1,3 +1,4 @@
+import { getToken } from '@/services/auth';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -64,6 +65,7 @@ export interface RentalFormData {
     phone: string;
     email: string;
   };
+  imageUrl:String;
 }
 
 export const fetchRentals = async (): Promise<Rental[]> => {
@@ -96,7 +98,6 @@ export async function fetchRentalById(id: number): Promise<RentalDetails> {
     
     const data = await response.json();
     
-    // Transform the API response to match our RentalDetails interface
     return {
       ...data,
       location: data.location || '',
@@ -115,26 +116,31 @@ export async function fetchRentalById(id: number): Promise<RentalDetails> {
 }
 
 export const uploadImageToCloudinary = async (file: any): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', {
+    uri: file.uri,
+    type: file.type,
+    name: file.name,
+  } as any);
+
+  formData.append('upload_preset', 'imageUrl');
+
   try {
-    const response = await fetch(file.uri);
-    const blob = await response.blob(); 
-
-    const formData = new FormData();
-    formData.append('file', blob, file.name);  
-    formData.append('upload_preset', 'imageUrl');
-
     const cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dnd03w7us/image/upload', {
       method: 'POST',
       body: formData,
+      headers: {
+        Accept: 'application/json',
+      },
     });
 
+    const data = await cloudinaryResponse.json();
+
     if (!cloudinaryResponse.ok) {
-      const errorData = await cloudinaryResponse.json();
-      console.error('Upload error response:', errorData);
-      throw new Error('Failed to upload image');
+      console.error('Upload failed:', data);
+      throw new Error(data.error?.message || 'Failed to upload image');
     }
 
-    const data = await cloudinaryResponse.json();
     return data.secure_url;
   } catch (error) {
     console.error('Error uploading image:', error);
@@ -142,12 +148,15 @@ export const uploadImageToCloudinary = async (file: any): Promise<string> => {
   }
 };
 
+
 export const createRental = async (rentalData: RentalFormData): Promise<Rental> => {
   try {
+    const token = await getToken();
     const response = await fetch(`${API_BASE_URL}/rentals`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         title: rentalData.title,
@@ -162,15 +171,17 @@ export const createRental = async (rentalData: RentalFormData): Promise<Rental> 
         contact_name: rentalData.contact.name,
         contact_phone: rentalData.contact.phone,
         contact_email: rentalData.contact.email,
-        status: 'available'
+        status: 'available',
+        imageUrl: rentalData.imageUrl,
       }),
     });
 
+    const data = await response.json();
     if (!response.ok) {
-      throw new Error('Failed to create rental');
+      console.error('Response error:', data);
+      throw new Error(data.message || 'Failed to create rental');
     }
 
-    const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error creating rental:', error);
@@ -178,11 +189,12 @@ export const createRental = async (rentalData: RentalFormData): Promise<Rental> 
   }
 };
 
+
 const PostScreen = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null); // State to store the uploaded image URL
+  const [imageUrl, setImageUrl] = useState<string | null>(null); 
   const [formData, setFormData] = useState<RentalFormData>({
     title: '',
     location: '',
@@ -198,6 +210,7 @@ const PostScreen = () => {
       phone: '',
       email: '',
     },
+    imageUrl:'',
   });
 
   const pickImage = async () => {
@@ -211,18 +224,14 @@ const PostScreen = () => {
     if (!result.canceled) {
       const selectedImage = result.assets[0].uri;
       setImage(selectedImage);
-
-      // Create a file object for the upload
       const file = {
         uri: selectedImage,
-        type: 'image/jpeg', // Adjust this based on the actual image type
-        name: 'rental-image.jpg', // You can also use a dynamic name if needed
+        type: 'image/jpeg', 
+        name: 'rental-image.jpg', 
       };
-
-      // Upload image to Cloudinary
       try {
         const uploadedImageUrl = await uploadImageToCloudinary(file);
-        setImageUrl(uploadedImageUrl); // Store the uploaded image URL
+        setImageUrl(uploadedImageUrl); 
       } catch (error) {
         console.error('Error uploading image:', error);
         Alert.alert('Error', 'Failed to upload image. Please try again.');
@@ -233,17 +242,13 @@ const PostScreen = () => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-
-      // Check if an image has been uploaded
       if (!imageUrl) {
         Alert.alert('Error', 'Please upload an image before posting.');
         return;
       }
-
-      // Create rental with image URL
       const rentalData = {
         ...formData,
-        imageUrl, // Use the uploaded image URL here
+        imageUrl, 
       };
 
       await createRental(rentalData);
