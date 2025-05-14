@@ -1,5 +1,6 @@
 import { createRental, RentalFormData, uploadImageToCloudinary } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -24,6 +25,7 @@ export default function PostScreen() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [formData, setFormData] = useState<RentalFormData>({
     title: '',
     location: '',
@@ -219,15 +221,33 @@ export default function PostScreen() {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Available From</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.availableFrom}
-                onChangeText={(text) => setFormData({ ...formData, availableFrom: text })}
-                placeholder="YYYY-MM-DD"
-              />
-            </View>
+<View style={styles.inputContainer}>
+  <Text style={styles.label}>Available From</Text>
+  <TouchableOpacity
+    onPress={() => setShowDatePicker(true)}
+    style={styles.input}
+  >
+    <Text style={{ fontSize: 16, color: formData.availableFrom ? '#000' : '#999' }}>
+      {formData.availableFrom || 'Select date'}
+    </Text>
+  </TouchableOpacity>
+
+  {showDatePicker && (
+    <DateTimePicker
+      value={formData.availableFrom ? new Date(formData.availableFrom) : new Date()}
+      mode="date"
+      display={Platform.OS === 'ios' ? 'inline' : 'default'}
+      onChange={(event, selectedDate) => {
+        setShowDatePicker(Platform.OS === 'ios');
+        if (selectedDate) {
+          const formatted = selectedDate.toISOString().split('T')[0]; // format to YYYY-MM-DD
+          setFormData({ ...formData, availableFrom: formatted });
+        }
+      }}
+    />
+  )}
+</View>
+
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Contact Information</Text>
@@ -302,6 +322,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingBottom:30,
   },
   content: {
     flex: 1,
