@@ -1,17 +1,39 @@
-import { fetchRentalById, Rental } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchComments, fetchRentalById, postComment, Rental } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image, Image as RNImage, ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Helper to format date as 'x hours ago', 'Yesterday', or 'MMM dd, yyyy'
+function formatCommentDate(dateString: string) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 0) {
+    if (diffHr > 0) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
+    if (diffMin > 0) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
+    return 'Just now';
+  } else if (diffDay === 1) {
+    return 'Yesterday';
+  } else {
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+}
 
 export default function PropertyDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -19,9 +41,16 @@ export default function PropertyDetailsScreen() {
   const [property, setProperty] = useState<Rental | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const [posting, setPosting] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     loadProperty();
+    loadComments();
   }, [id]);
 
   const loadProperty = async () => {
@@ -35,6 +64,33 @@ export default function PropertyDetailsScreen() {
       console.error('Error loading property:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadComments = async () => {
+    try {
+      setCommentsLoading(true);
+      const data = await fetchComments(Number(id));
+      setComments(data);
+      setCommentsError(null);
+    } catch (err) {
+      setCommentsError('Failed to load comments.');
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handlePostComment = async () => {
+    if (!newComment.trim()) return;
+    try {
+      setPosting(true);
+      await postComment(Number(id), newComment.trim());
+      setNewComment('');
+      loadComments();
+    } catch (err) {
+      alert('Failed to post comment.');
+    } finally {
+      setPosting(false);
     }
   };
 
@@ -155,6 +211,54 @@ export default function PropertyDetailsScreen() {
               )}
             </View>
           </View>
+         {/* Comments Section */}
+         <View style={styles.section}>
+           <Text style={styles.sectionTitle}>Comments</Text>
+           {commentsLoading ? (
+             <Text style={styles.commentLoading}>Loading comments...</Text>
+           ) : commentsError ? (
+             <Text style={styles.commentError}>{commentsError}</Text>
+           ) : comments.length === 0 ? (
+             <Text style={styles.commentEmpty}>No comments yet.</Text>
+           ) : (
+             comments.map((c, idx) => (
+               <View key={idx} style={styles.commentItem}>
+                 <View style={styles.commentHeaderRow}>
+                   {c.profile_url ? (
+                     <RNImage source={{ uri: c.profile_url }} style={styles.commentAvatar} />
+                   ) : (
+                     <View style={styles.commentAvatarDummy}>
+                       {c.name ? (
+                         <Text style={styles.commentAvatarInitial}>{c.name[0].toUpperCase()}</Text>
+                       ) : (
+                         <Ionicons name="person" size={20} color="#fff" />
+                       )}
+                     </View>
+                   )}
+                   <View style={{ flex: 1 }}>
+                     <Text style={styles.commentUser}>{c.name || 'User'}</Text>
+                     <Text style={styles.commentDate}>{formatCommentDate(c.created_at)}</Text>
+                   </View>
+                 </View>
+                 <Text style={styles.commentText}>{c.comment}</Text>
+               </View>
+             ))
+           )}
+           {isAuthenticated && (
+             <View style={styles.commentInputRow}>
+               <TextInput
+                 style={styles.commentInput}
+                 placeholder="Add a comment..."
+                 value={newComment}
+                 onChangeText={setNewComment}
+                 editable={!posting}
+               />
+               <TouchableOpacity style={styles.commentButton} onPress={handlePostComment} disabled={posting || !newComment.trim()}>
+                 <Text style={styles.commentButtonText}>{posting ? 'Posting...' : 'Post'}</Text>
+               </TouchableOpacity>
+             </View>
+           )}
+         </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -297,4 +401,19 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 4,
   },
+  commentLoading: { color: '#666', fontSize: 14, marginBottom: 8 },
+  commentError: { color: '#D32F2F', fontSize: 14, marginBottom: 8 },
+  commentEmpty: { color: '#999', fontSize: 14, marginBottom: 8 },
+  commentItem: { marginBottom: 12, backgroundColor: '#f7f7f7', borderRadius: 8, padding: 10 },
+  commentHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10, backgroundColor: '#eee' },
+  commentAvatarDummy: { width: 32, height: 32, borderRadius: 16, marginRight: 10, backgroundColor: '#bbb', alignItems: 'center', justifyContent: 'center' },
+  commentAvatarInitial: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  commentUser: { fontWeight: 'bold', color: '#333', marginBottom: 2 },
+  commentText: { color: '#333', fontSize: 15 },
+  commentDate: { color: '#888', fontSize: 12, marginTop: 2 },
+  commentInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  commentInput: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, fontSize: 15, backgroundColor: '#fff', marginRight: 8 },
+  commentButton: { backgroundColor: '#4CAF50', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
+  commentButtonText: { color: '#fff', fontWeight: 'bold' },
 }); 

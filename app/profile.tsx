@@ -1,16 +1,21 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { getFavourites, updateProfile } from '@/services/api';
 import { getUserDetails, logout, User } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,9 +24,18 @@ export default function ProfileScreen() {
   const { setAuthenticated } = useAuth(); 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [favourites, setFavourites] = useState<any[]>([]);
+  const [favouritesLoading, setFavouritesLoading] = useState(true);
+  const [favouritesError, setFavouritesError] = useState<string | null>(null);
+  const [showFavourites, setShowFavourites] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editProfileData, setEditProfileData] = useState<any>(null);
+  const [editProfileLoading, setEditProfileLoading] = useState(false);
+  const [editProfileError, setEditProfileError] = useState<string | null>(null);
 
   useEffect(() => {
     loadUserDetails();
+    loadFavourites();
   }, []);
 
   const loadUserDetails = async () => {
@@ -36,6 +50,20 @@ export default function ProfileScreen() {
     }
   };
 
+  const loadFavourites = async () => {
+    try {
+      setFavouritesLoading(true);
+      const data = await getFavourites();
+      setFavourites(data);
+      setFavouritesError(null);
+    } catch (err) {
+      console.log('Favourites error:', err);
+      setFavouritesError('Failed to load favourites.');
+    } finally {
+      setFavouritesLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
   try {
     await logout();  
@@ -44,6 +72,37 @@ export default function ProfileScreen() {
     Alert.alert('Error', 'Logout failed. Please try again.');
   }
 };
+
+  const openEditProfile = () => {
+    if (!user) return;
+    setEditProfileData({
+      name: user.name || '',
+      location: user.location || '',
+      occupation: user.occupation || '',
+      bio: user.bio || '',
+      profile_url: user.profile_url || '',
+    });
+    setShowEditProfile(true);
+  };
+
+  const handleEditProfileChange = (field: string, value: string) => {
+    setEditProfileData((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditProfileSubmit = async () => {
+    if (!editProfileData) return;
+    setEditProfileLoading(true);
+    setEditProfileError(null);
+    try {
+      await updateProfile(editProfileData);
+      setShowEditProfile(false);
+      loadUserDetails();
+    } catch (err) {
+      setEditProfileError('Failed to update profile.');
+    } finally {
+      setEditProfileLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -57,7 +116,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} contentContainerStyle={{ padding: 0 }}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -65,7 +124,7 @@ export default function ProfileScreen() {
         <Text style={styles.headerTitle}>Profile</Text>
       </View>
 
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingHorizontal: 0 }]}> {/* Remove horizontal padding */}
         <View style={styles.profileImageContainer}>
           {user?.profile_url ? (
             <Image source={{ uri: user.profile_url }} style={styles.profileImage} />
@@ -79,10 +138,10 @@ export default function ProfileScreen() {
         {user?.occupation && <Text style={styles.occupation}>{user.occupation}</Text>}
       </View>
 
-     <View style={styles.menuContainer}>
+     <View style={[styles.menuContainer, { marginHorizontal: 0 }]}> {/* Remove horizontal margin */}
   {user ? (
     <>
-      <TouchableOpacity style={styles.menuItem}>
+      <TouchableOpacity style={styles.menuItem} onPress={openEditProfile}>
         <Ionicons name="person-outline" size={24} color="#333" />
         <Text style={styles.menuText}>Edit Profile</Text>
         <Ionicons name="chevron-forward" size={24} color="#666" />
@@ -115,7 +174,100 @@ export default function ProfileScreen() {
   )}
 </View>
 
-    </SafeAreaView>
+      <TouchableOpacity style={styles.favButton} onPress={() => setShowFavourites(true)}>
+        <Text style={styles.favButtonText}>View Favourites</Text>
+      </TouchableOpacity>
+      <Modal
+        visible={showFavourites}
+        animationType="slide"
+        onRequestClose={() => setShowFavourites(false)}
+        transparent={false}
+      >
+        <View style={styles.modalHeader}>
+          <Text style={styles.sectionHeader}>Favourites</Text>
+          <TouchableOpacity onPress={() => setShowFavourites(false)} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+        {favouritesLoading ? (
+          <ActivityIndicator size="large" color="#4CAF50" style={{ marginVertical: 16 }} />
+        ) : favouritesError ? (
+          <Text style={styles.errorText}>{favouritesError}</Text>
+        ) : favourites.length === 0 ? (
+          <Text style={styles.emptyText}>No favourites yet.</Text>
+        ) : (
+          <FlatList
+            data={favourites}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.favCard} onPress={() => { setShowFavourites(false); router.push({ pathname: '/property/[id]', params: { id: String(item.id) } }); }}>
+                <Image source={{ uri: item.imageUrl }} style={styles.favImage} />
+                <View style={styles.favContent}>
+                  <Text style={styles.favTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={styles.favLocation} numberOfLines={1}>{item.location}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            keyExtractor={item => String(item.id)}
+            contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+          />
+        )}
+      </Modal>
+      <Modal
+        visible={showEditProfile}
+        animationType="slide"
+        onRequestClose={() => setShowEditProfile(false)}
+        transparent={false}
+      >
+        <View style={styles.modalHeader}>
+          <Text style={styles.sectionHeader}>Edit Profile</Text>
+          <TouchableOpacity onPress={() => setShowEditProfile(false)} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+        {editProfileError && <Text style={styles.errorText}>{editProfileError}</Text>}
+        <ScrollView contentContainerStyle={{ padding: 24 }}>
+          <Text style={styles.inputLabel}>Name</Text>
+          <TextInput
+            style={styles.input}
+            value={editProfileData?.name}
+            onChangeText={v => handleEditProfileChange('name', v)}
+            placeholder="Name"
+          />
+          <Text style={styles.inputLabel}>Location</Text>
+          <TextInput
+            style={styles.input}
+            value={editProfileData?.location}
+            onChangeText={v => handleEditProfileChange('location', v)}
+            placeholder="Location"
+          />
+          <Text style={styles.inputLabel}>Occupation</Text>
+          <TextInput
+            style={styles.input}
+            value={editProfileData?.occupation}
+            onChangeText={v => handleEditProfileChange('occupation', v)}
+            placeholder="Occupation"
+          />
+          <Text style={styles.inputLabel}>Bio</Text>
+          <TextInput
+            style={[styles.input, { height: 80 }]}
+            value={editProfileData?.bio}
+            onChangeText={v => handleEditProfileChange('bio', v)}
+            placeholder="Bio"
+            multiline
+          />
+          <Text style={styles.inputLabel}>Profile Image URL</Text>
+          <TextInput
+            style={styles.input}
+            value={editProfileData?.profile_url}
+            onChangeText={v => handleEditProfileChange('profile_url', v)}
+            placeholder="Profile Image URL"
+          />
+          <TouchableOpacity style={styles.saveButton} onPress={handleEditProfileSubmit} disabled={editProfileLoading}>
+            <Text style={styles.saveButtonText}>{editProfileLoading ? 'Saving...' : 'Save Changes'}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </Modal>
+    </ScrollView>
   );
 }
 
@@ -228,4 +380,54 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     marginTop: 8,
   },
+  sectionHeader: { fontSize: 20, fontWeight: 'bold', marginTop: 24, marginBottom: 12, color: '#333' },
+  favButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  favButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff' },
+  closeButton: { padding: 8, borderRadius: 8, backgroundColor: '#eee' },
+  closeButtonText: { color: '#333', fontWeight: 'bold' },
+  favCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    padding: 8,
+  },
+  favImage: { width: 60, height: 60, borderRadius: 8, marginRight: 12, backgroundColor: '#eee' },
+  favContent: { flex: 1 },
+  favTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  favLocation: { fontSize: 13, color: '#666' },
+  errorText: { color: '#D32F2F', fontSize: 16, marginVertical: 8 },
+  emptyText: { color: '#999', fontSize: 15, marginVertical: 8 },
+  inputLabel: { fontWeight: 'bold', marginBottom: 6, color: '#333', marginTop: 16 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 4,
+    fontSize: 16,
+    backgroundColor: '#fafafa',
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });

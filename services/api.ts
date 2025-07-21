@@ -189,6 +189,159 @@ export const createRental = async (rentalData: RentalFormData): Promise<Rental> 
   }
 };
 
+// --- USER'S OWN LISTINGS ---
+export const fetchOwnRentals = async (): Promise<Rental[]> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/user/rentals`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Failed to fetch your listings');
+  return await response.json();
+};
+
+export const updateRental = async (rentalId: number, rentalData: Partial<RentalFormData>): Promise<any> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/rentals/${rentalId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(rentalData),
+  });
+  if (!response.ok) throw new Error('Failed to update rental');
+  return await response.json();
+};
+
+export const deleteRental = async (rentalId: number): Promise<any> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/rentals/${rentalId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Failed to delete rental');
+  return await response.json();
+};
+
+// --- COMMENTS ---
+export const fetchComments = async (rentalId: number): Promise<any[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/rentals/${rentalId}/comments`);
+  if (!response.ok) throw new Error('Failed to fetch comments');
+  return await response.json();
+};
+
+export const postComment = async (rentalId: number, comment: string): Promise<any> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/rentals/${rentalId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ comment }),
+  });
+  if (!response.ok) throw new Error('Failed to post comment');
+  return await response.json();
+};
+
+// --- MESSAGING ---
+export const getConversations = async (): Promise<any[]> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/conversations`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Failed to fetch conversations');
+  const data = await response.json();
+  return data.conversations || [];
+};
+
+export const startConversation = async (rentalId: number): Promise<any> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/conversations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ rentalId }),
+  });
+  if (!response.ok) throw new Error('Failed to start conversation');
+  return await response.json();
+};
+
+export const getMessages = async (conversationId: number): Promise<any[]> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/conversations/${conversationId}/messages`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Failed to fetch messages');
+  const data = await response.json();
+  return data.messages || [];
+};
+
+export const sendMessage = async (conversationId: number, content: string): Promise<any> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/conversations/${conversationId}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+  });
+  if (!response.ok) throw new Error('Failed to send message');
+  return await response.json();
+};
+
+// --- FAVOURITES ---
+export const getFavourites = async (): Promise<Rental[]> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/favourites`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Failed to fetch favourites');
+  return await response.json();
+};
+
+export const addFavourite = async (rentalId: number): Promise<any> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/favourites`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ rentalId }),
+  });
+  if (!response.ok) throw new Error('Failed to add favourite');
+  return await response.json();
+};
+
+export const removeFavourite = async (rentalId: number): Promise<any> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/favourites/${rentalId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Failed to remove favourite');
+  return await response.json();
+};
+
+// --- PROFILE ---
+export const updateProfile = async (profileData: any): Promise<any> => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/user`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(profileData),
+  });
+  if (!response.ok) throw new Error('Failed to update profile');
+  return await response.json();
+};
+
 
 const PostScreen = () => {
   const router = useRouter();
