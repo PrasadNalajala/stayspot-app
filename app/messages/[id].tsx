@@ -154,60 +154,77 @@ export default function ChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.bg} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.stickyHeader}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.header}>{receiverName || 'Chat'}</Text>
-        </View>
-        {property && (
-          <View style={styles.propertyCard}>
-            {property.imageUrl && (
-              <View style={styles.propertyImageWrap}>
-                <Image source={{ uri: property.imageUrl }} style={styles.propertyImage} />
-              </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.propertyTitle}>{property.title}</Text>
-              <Text style={styles.propertyLocation}>{property.location}</Text>
-            </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#f6f8fa' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
+      <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'flex-end' }}>
+        <View style={styles.stickyHeader}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.header}>{receiverName || 'Chat'}</Text>
           </View>
-        )}
-      </View>
-
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#4CAF50" />
+          {property && (
+            <View style={styles.propertyCard}>
+              {property.imageUrl && (
+                <View style={styles.propertyImageWrap}>
+                  <Image source={{ uri: property.imageUrl }} style={styles.propertyImage} />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.propertyTitle}>{property.title}</Text>
+                <Text style={styles.propertyLocation}>{property.location}</Text>
+              </View>
+            </View>
+          )}
         </View>
-      ) : error ? (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item, index) => item.type === 'date' ? `date-${index}` : `msg-${item.id}`}
-          contentContainerStyle={styles.list}
-          initialNumToRender={10}
-          removeClippedSubviews={true}
-        />
-      )}
 
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Type a message..."
-          value={newMessage}
-          onChangeText={setNewMessage}
-          editable={!sending}
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={sending || !newMessage.trim()}>
-          <Ionicons name="send" size={22} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          {loading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color="#4CAF50" />
+            </View>
+          ) : error ? (
+            <View style={styles.centered}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : (
+            <>
+              <FlatList
+                ref={flatListRef}
+                data={messages}
+                renderItem={renderMessage}
+                keyExtractor={(item, index) => item.type === 'date' ? `date-${index}` : `msg-${item.id}`}
+                contentContainerStyle={styles.list}
+                initialNumToRender={10}
+                removeClippedSubviews={true}
+              />
+              {messages.length === 0 && (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={48} color="#B0BEC5" style={{ marginBottom: 16 }} />
+                  <Text style={styles.emptyTitle}>No messages yet</Text>
+                  <Text style={styles.emptySubtitle}>Start the conversation by sending a message!</Text>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Type a message..."
+            value={newMessage}
+            onChangeText={setNewMessage}
+            editable={!sending}
+          />
+          <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={sending || !newMessage.trim()}>
+            <Ionicons name="send" size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -299,5 +316,26 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     color: '#444'
-  }
+  },
+  emptyText: { color: '#888', fontSize: 16, textAlign: 'center', marginTop: 24 },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 48,
+    marginBottom: 32,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#607D8B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 15,
+    color: '#90A4AE',
+    textAlign: 'center',
+    marginHorizontal: 24,
+  },
 });

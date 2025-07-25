@@ -1,16 +1,17 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchComments, fetchRentalById, postComment, Rental } from '@/services/api';
+import { getToken } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Image, Image as RNImage, ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Image, Image as RNImage, ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -91,6 +92,47 @@ export default function PropertyDetailsScreen() {
       alert('Failed to post comment.');
     } finally {
       setPosting(false);
+    }
+  };
+
+  const API_BASE = 'https://stayspot.onrender.com';
+
+  const handleMessageOwner = async () => {
+    console.log('Button pressed!', property);
+    if (!property) {
+      alert('Property not loaded!');
+      return;
+    }
+    const token = await getToken();
+    if (!token) {
+      alert('You must be logged in to message the owner.');
+      return;
+    }
+    // Use rental id from params
+    const rentalId = Number(id);
+    const receiverName = property.contact?.name || 'Owner';
+    console.log('About to POST to /api/conversations', {
+      rentalId,
+      receiverName,
+      property,
+    });
+    const response = await fetch(`${API_BASE}/api/conversations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ rentalId }),
+    });
+    console.log('Fetch response:', response);
+    if (response.ok) {
+      const { conversation } = await response.json();
+      console.log('Conversation created:', conversation);
+      router.push({ pathname: '/messages/[id]', params: { id: String(conversation.id), receiverName } });
+    } else {
+      const errorData = await response.json();
+      console.error('Failed to start conversation:', errorData);
+      alert('Failed to start conversation: ' + (errorData.message || 'Unknown error'));
     }
   };
 
@@ -211,54 +253,60 @@ export default function PropertyDetailsScreen() {
               )}
             </View>
           </View>
-         {/* Comments Section */}
-         <View style={styles.section}>
-           <Text style={styles.sectionTitle}>Comments</Text>
-           {commentsLoading ? (
-             <Text style={styles.commentLoading}>Loading comments...</Text>
-           ) : commentsError ? (
-             <Text style={styles.commentError}>{commentsError}</Text>
-           ) : comments.length === 0 ? (
-             <Text style={styles.commentEmpty}>No comments yet.</Text>
-           ) : (
-             comments.map((c, idx) => (
-               <View key={idx} style={styles.commentItem}>
-                 <View style={styles.commentHeaderRow}>
-                   {c.profile_url ? (
-                     <RNImage source={{ uri: c.profile_url }} style={styles.commentAvatar} />
-                   ) : (
-                     <View style={styles.commentAvatarDummy}>
-                       {c.name ? (
-                         <Text style={styles.commentAvatarInitial}>{c.name[0].toUpperCase()}</Text>
-                       ) : (
-                         <Ionicons name="person" size={20} color="#fff" />
-                       )}
-                     </View>
-                   )}
-                   <View style={{ flex: 1 }}>
-                     <Text style={styles.commentUser}>{c.name || 'User'}</Text>
-                     <Text style={styles.commentDate}>{formatCommentDate(c.created_at)}</Text>
-                   </View>
-                 </View>
-                 <Text style={styles.commentText}>{c.comment}</Text>
-               </View>
-             ))
-           )}
-           {isAuthenticated && (
-             <View style={styles.commentInputRow}>
-               <TextInput
-                 style={styles.commentInput}
-                 placeholder="Add a comment..."
-                 value={newComment}
-                 onChangeText={setNewComment}
-                 editable={!posting}
-               />
-               <TouchableOpacity style={styles.commentButton} onPress={handlePostComment} disabled={posting || !newComment.trim()}>
-                 <Text style={styles.commentButtonText}>{posting ? 'Posting...' : 'Post'}</Text>
-               </TouchableOpacity>
-             </View>
-           )}
-         </View>
+
+          {/* Message Owner Button */}
+          <TouchableOpacity style={styles.messageOwnerButton} onPress={handleMessageOwner}>
+            <Text style={styles.messageOwnerButtonText}>Message Owner</Text>
+          </TouchableOpacity>
+
+          {/* Comments Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Comments</Text>
+            {commentsLoading ? (
+              <Text style={styles.commentLoading}>Loading comments...</Text>
+            ) : commentsError ? (
+              <Text style={styles.commentError}>{commentsError}</Text>
+            ) : comments.length === 0 ? (
+              <Text style={styles.commentEmpty}>No comments yet.</Text>
+            ) : (
+              comments.map((c, idx) => (
+                <View key={idx} style={styles.commentItem}>
+                  <View style={styles.commentHeaderRow}>
+                    {c.profile_url ? (
+                      <RNImage source={{ uri: c.profile_url }} style={styles.commentAvatar} />
+                    ) : (
+                      <View style={styles.commentAvatarDummy}>
+                        {c.name ? (
+                          <Text style={styles.commentAvatarInitial}>{c.name[0].toUpperCase()}</Text>
+                        ) : (
+                          <Ionicons name="person" size={20} color="#fff" />
+                        )}
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.commentUser}>{c.name || 'User'}</Text>
+                      <Text style={styles.commentDate}>{formatCommentDate(c.created_at)}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.commentText}>{c.comment}</Text>
+                </View>
+              ))
+            )}
+            {isAuthenticated && (
+              <View style={styles.commentInputRow}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder="Add a comment..."
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  editable={!posting}
+                />
+                <TouchableOpacity style={styles.commentButton} onPress={handlePostComment} disabled={posting || !newComment.trim()}>
+                  <Text style={styles.commentButtonText}>{posting ? 'Posting...' : 'Post'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -416,4 +464,16 @@ const styles = StyleSheet.create({
   commentInput: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, fontSize: 15, backgroundColor: '#fff', marginRight: 8 },
   commentButton: { backgroundColor: '#4CAF50', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
   commentButtonText: { color: '#fff', fontWeight: 'bold' },
+  messageOwnerButton: {
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  messageOwnerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 }); 

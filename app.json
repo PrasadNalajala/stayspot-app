@@ -21,7 +21,9 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.prasad118.stayspotapp"
+      "package": "com.prasad118.stayspotapp",
+      "jsEngine": "hermes",
+      "enableProguardInReleaseBuilds": true
     },
     "web": {
       "bundler": "metro",
